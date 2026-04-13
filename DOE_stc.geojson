@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "DOE_stc",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 4, "city": "Kampala", "neighborhood": "Luwafu", "name": "LUK-8", "location_type": "street cabinet", "install_date": "22/02/2026", "location_id": null, "template": null, "vue_ensemble": "DCIM/doe-stc/LUK-8_vue_ensemble_22022026143147.jpg", "vue_CH_0": "DCIM/doe-stc/LUK-8_vue_CH_0_22022026143717.jpg", "vue_fourreaux_pop": "DCIM/doe-stc/LUK-8_vue_fourreaux_pop_22022026142758.jpg", "vue_prepa_eclateurs": "DCIM/doe-stc/LUK-8_vue_prepa_eclateurs_22022026142813.jpg", "vue_soudure_ODF": "DCIM/doe-stc/LUK-8_vue_soudure_ODF_22022026142823.jpg", "vue_ODF": "DCIM/doe-stc/LUK-8_vue_ODF_22022026142857.jpg", "equipe": "Team 4" }, "geometry": { "type": "Point", "coordinates": [ 32.59010610927659, 0.272057348563985 ] } }
+]
+}

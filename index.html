@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Kampala DOE Network Map</title>
+    <!-- Leaflet core -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- jQuery for AJAX -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- Leaflet fullscreen -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.fullscreen@2.4.0/Control.FullScreen.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.fullscreen@2.4.0/Control.FullScreen.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Swiper.js for horizontal carousel -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    
+    <!-- Lightbox for image viewing -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox.min.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            overflow: hidden;
+            background: #0a1a2a;
+        }
+        
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 240px;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: #0a1a2a;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .loading-spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #ffd966;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-progress {
+            width: 400px;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .loading-progress-bar {
+            height: 100%;
+            background: #ffd966;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .carousel-boundary {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 240px;
+            background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(20,30,40,0.98));
+            border-top: 3px solid #ffd966;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 -5px 30px rgba(0,0,0,0.5);
+        }
+        
+        .carousel-boundary.hidden {
+            transform: translateY(100%);
+        }
+        
+        .carousel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 20px;
+            background: rgba(0,0,0,0.7);
+            border-bottom: 1px solid #ffd966;
+        }
+        
+        .carousel-title-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .carousel-title {
+            color: #ffd966;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        
+        .carousel-subtitle {
+            color: #aaa;
+            font-size: 0.8rem;
+        }
+        
+        .carousel-close {
+            background: #ff6b6b;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 1px solid white;
+            transition: all 0.2s;
+        }
+        
+        .carousel-close:hover {
+            background: #ff4444;
+            transform: scale(1.1);
+        }
+        
+        .swiper {
+            width: 100%;
+            height: calc(100% - 50px);
+            padding: 10px 20px;
+        }
+        
+        .swiper-wrapper {
+            display: flex;
+            flex-direction: row !important;
+            align-items: center;
+        }
+        
+        .swiper-slide {
+            width: 280px !important;
+            height: 170px;
+            margin-right: 15px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border: 2px solid #ffd966;
+            cursor: pointer;
+            transition: transform 0.3s;
+            background: #1a1a2e;
+            flex-shrink: 0;
+        }
+        
+        .swiper-slide:hover {
+            transform: scale(1.03);
+            border-color: #ffe08c;
+        }
+        
+        .swiper-slide img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            background: #2c3e50;
+        }
+        
+        .slide-caption {
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 6px 8px;
+            font-size: 0.7rem;
+            height: 50px;
+            overflow: hidden;
+            border-top: 1px solid #ffd966;
+        }
+        
+        .slide-caption .photo-title {
+            font-weight: bold;
+            color: #ffd966;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .swiper-button-next,
+        .swiper-button-prev {
+            color: #ffd966;
+            background: rgba(0,0,0,0.5);
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            backdrop-filter: blur(4px);
+        }
+        
+        /* Controls Panel */
+        .controls-panel {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(20, 30, 40, 0.95);
+            color: white;
+            border-radius: 12px;
+            border: 1px solid #ffd966;
+            backdrop-filter: blur(5px);
+            max-width: 300px;
+            pointer-events: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+            transition: all 0.3s ease;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px 12px 0 0;
+            transition: background 0.2s;
+        }
+        
+        .panel-header:hover {
+            background: rgba(255, 217, 102, 0.15);
+        }
+        
+        .panel-header h3 {
+            margin: 0;
+            color: #ffd966;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .panel-toggle-icon {
+            color: #ffd966;
+            font-size: 1rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .panel-content {
+            padding: 15px;
+            border-top: 1px solid #ffd966;
+            transition: all 0.3s ease;
+            max-height: 550px;
+            overflow-y: auto;
+        }
+        
+        .panel-content.collapsed {
+            display: none;
+        }
+        
+        .controls-panel h4 {
+            color: #ffd966;
+            margin: 12px 0 8px 0;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #3a4a5a;
+            padding-bottom: 4px;
+        }
+        
+        /* Collapsible container styles */
+        .collapsible-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 380px;
+            pointer-events: none;
+        }
+        
+        .collapsible-card {
+            background: rgba(20, 30, 40, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid #ffd966;
+            border-radius: 12px;
+            overflow: hidden;
+            pointer-events: auto;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid transparent;
+        }
+        
+        .card-header:hover {
+            background: rgba(255, 217, 102, 0.15);
+        }
+        
+        .card-header h4 {
+            color: #ffd966;
+            font-size: 0.85rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .toggle-icon {
+            color: #ffd966;
+            font-size: 0.9rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .card-content {
+            padding: 12px 15px;
+            border-top: 1px solid rgba(255, 217, 102, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .card-content.collapsed {
+            display: none;
+        }
+        
+        /* Stats specific styles */
+        .stats-content {
+            font-size: 0.75rem;
+            line-height: 1.5;
+        }
+        
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .stats-label {
+            color: #ffd966;
+            font-weight: bold;
+        }
+        
+        .stats-value {
+            color: white;
+            font-weight: bold;
+        }
+        
+        /* Instructions specific styles */
+        .instructions-content {
+            font-size: 0.7rem;
+            line-height: 1.6;
+            color: #ddd;
+        }
+        
+        .image-fields-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        
+        .field-tag {
+            background: rgba(255, 217, 102, 0.15);
+            border: 1px solid rgba(255, 217, 102, 0.3);
+            border-radius: 15px;
+            padding: 2px 8px;
+            font-size: 0.65rem;
+            font-family: monospace;
+            color: #ffd966;
+        }
+        
+        .action-btn {
+            background: #ffd966;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 12px;
+            margin-top: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        
+        .action-btn:hover {
+            background: #ffe08c;
+            transform: scale(1.02);
+        }
+        
+        .layer-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 0;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+        .layer-item:hover {
+            background: rgba(255,217,102,0.15);
+        }
+        .layer-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        .layer-name {
+            flex: 1;
+            font-size: 0.85rem;
+        }
+        .layer-count {
+            font-size: 0.7rem;
+            color: #ffd966;
+            margin-left: 5px;
+        }
+        
+        .feature-group {
+            margin-left: 15px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            padding-left: 5px;
+            border-left: 2px solid rgba(255,217,102,0.3);
+        }
+        
+        .line-layer-toggle {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #3a4a5a;
+        }
+        .line-layer-title {
+            color: #ffd966;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .empty-carousel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #aaa;
+            text-align: center;
+        }
+        
+        .custom-popup .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            padding: 0;
+            overflow: hidden;
+            background: transparent;
+        }
+        
+        .custom-popup .leaflet-popup-content {
+            margin: 0;
+            min-width: 480px;
+            max-width: 650px;
+        }
+        
+        .custom-popup .leaflet-popup-tip {
+            background: rgba(20,30,40,0.98);
+        }
+        
+        .feature-tab-container {
+            background: rgba(20,30,40,0.98);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .feature-tabs {
+            display: flex;
+            background: #0f1a24;
+            border-bottom: 2px solid #ffd966;
+            flex-wrap: wrap;
+            max-height: 80px;
+            overflow-x: auto;
+        }
+        
+        .feature-tab {
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            border-right: 1px solid #2a3a44;
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        
+        .feature-tab:hover {
+            background: #1e2f3a;
+            color: #ffd966;
+        }
+        
+        .feature-tab.active {
+            background: #ffd966;
+            color: #1a1a1a;
+        }
+        
+        .feature-content {
+            padding: 15px;
+            max-height: 550px;
+            overflow-y: auto;
+        }
+        
+        .attr-row {
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a3a44;
+        }
+        
+        .attr-label {
+            color: #ffd966;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .attr-value {
+            color: #fff;
+            font-size: 0.85rem;
+            word-break: break-word;
+        }
+        
+        .image-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        
+        .gallery-image {
+            width: 110px;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #ffd966;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        
+        .gallery-image:hover {
+            transform: scale(1.05);
+            border-color: #ffe08c;
+        }
+        
+        .photo-label {
+            font-size: 0.65rem;
+            color: #aaa;
+            text-align: center;
+            margin-top: 4px;
+            max-width: 110px;
+            word-break: break-word;
+        }
+        
+        .image-container {
+            text-align: center;
+        }
+        
+        .badge-photo {
+            background: #4CAF50;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 0.6rem;
+            margin-left: 6px;
+        }
+        
+        .feature-marker {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: #1a1a1a;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .feature-marker:hover {
+            transform: scale(1.15);
+        }
+        
+        .marker-has-photo {
+            box-shadow: 0 0 0 2px #4CAF50, 0 2px 8px black;
+        }
+        
+        .lb-image {
+            border-radius: 8px;
+        }
+        
+        .building-polygon {
+            fill-opacity: 0.6;
+            stroke: #ffd966;
+            stroke-width: 1;
+            transition: all 0.2s;
+        }
+        
+        .building-polygon:hover {
+            fill-opacity: 0.9;
+            stroke-width: 2;
+        }
+        
+        @media (max-width: 768px) {
+            .collapsible-container {
+                max-width: 300px;
+                top: 10px;
+                right: 10px;
+            }
+            .controls-panel {
+                max-width: 260px;
+            }
+            .panel-content {
+                max-width: 260px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <h2>Loading DOE Kampala GeoJSON Data...</h2>
+        <div class="loading-progress">
+            <div class="loading-progress-bar" id="loadingProgressBar"></div>
+        </div>
+        <div id="loadingStatus">Loading GeoJSON files...</div>
+        <div id="loadingDetail" style="font-size:12px; margin-top:10px; color:#aaa;"></div>
+    </div>
+    
+    <div class="carousel-boundary" id="carouselBoundary">
+        <div class="carousel-header">
+            <div class="carousel-title-section">
+                <span class="carousel-title" id="carouselTitle">
+                    <i class="fas fa-sync-alt fa-fw"></i> PHOTOS IN CURRENT VIEW
+                </span>
+                <span class="carousel-subtitle" id="carouselSubtitle">Loading...</span>
+            </div>
+            <div class="carousel-close" onclick="toggleCarousel()">
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+        <div class="swiper" id="photoSwiper">
+            <div class="swiper-wrapper" id="swiperWrapper">
+                <div class="swiper-slide" style="text-align:center; line-height:170px;">
+                    Loading photos...
+                </div>
+            </div>
+            <div class="swiper-button-next"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-pagination"></div>
+        </div>
+    </div>
+    
+    <!-- COLLAPSIBLE CONTROLS PANEL -->
+    <div class="controls-panel" id="controlsPanel">
+        <div class="panel-header" onclick="toggleControlsPanel()">
+            <h3><i class="fas fa-layer-group"></i> DOE Kampala Network</h3>
+            <i class="fas fa-chevron-up panel-toggle-icon" id="panelToggleIcon"></i>
+        </div>
+        <div class="panel-content" id="panelContent">
+            <p style="font-size:0.7rem; margin-bottom:6px; color:#ccc;">
+                🟢 <span style="color:#4CAF50;">Green ring</span> = Has photos <br>
+                🟡 <span style="color:#ffd966;">Yellow marker</span> = No photos 
+            </p>
+            
+            <!-- Base Layers -->
+            <div class="line-layer-title"><i class="fas fa-map"></i> Base Maps</div>
+            <div id="base-layer-controls"></div>
+            
+            <!-- Point Features with Individual Checkboxes -->
+            <div class="line-layer-title" style="margin-top: 12px;"><i class="fas fa-map-pin"></i> Network Features</div>
+            <div id="point-feature-controls"></div>
+            
+            <!-- Cable Infrastructure -->
+            <div class="line-layer-toggle">
+                <div class="line-layer-title"><i class="fas fa-draw-polygon"></i> Cable Infrastructure</div>
+                <div id="line-layer-controls"></div>
+            </div>
+            
+            <!-- Buildings Layer Toggle -->
+            <div class="line-layer-toggle">
+                <div class="line-layer-title"><i class="fas fa-building"></i> Buildings Layer</div>
+                <div class="layer-item" id="buildings-toggle-container">
+                    <input type="checkbox" id="toggleBuildings" checked style="margin-right: 10px;">
+                    <span class="layer-color" style="background:#ff9800"></span>
+                    <span class="layer-name">Show Buildings</span>
+                </div>
+            </div>
+            
+            <button class="action-btn" onclick="resetView()">
+                <i class="fas fa-undo-alt"></i> Reset Map View
+            </button>
+        </div>
+    </div>
+    
+    <!-- COLLAPSIBLE CONTAINERS GROUP -->
+    <div class="collapsible-container">
+        
+        <!-- STATS PANEL -->
+        <div class="collapsible-card" id="statsCard">
+            <div class="card-header" onclick="toggleCard('statsCard')">
+                <h4>
+                    <i class="fas fa-chart-line"></i> 
+                    Network Statistics
+                </h4>
+                <i class="fas fa-chevron-up toggle-icon" id="statsIcon"></i>
+            </div>
+            <div class="card-content stats-content" id="statsContent">
+                <div id="statsPanelContent">
+                    <div class="stats-row">
+                        <span class="stats-label"><i class="fas fa-map-pin"></i> Locations:</span>
+                        <span class="stats-value" id="statLocations">0</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label"><i class="fas fa-cube"></i> Features:</span>
+                        <span class="stats-value" id="statFeatures">0</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label"><i class="fas fa-images"></i> Images:</span>
+                        <span class="stats-value" id="statImages">0</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label"><i class="fas fa-layer-group"></i> Multi-feature spots:</span>
+                        <span class="stats-value" id="statMulti">0</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label"><i class="fas fa-camera"></i> Locations with photos:</span>
+                        <span class="stats-value" id="statWithPhotos">0</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label"><i class="fas fa-building"></i> Buildings:</span>
+                        <span class="stats-value" id="statBuildings">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- INSTRUCTIONS PANEL -->
+        <div class="collapsible-card" id="instructionsCard">
+            <div class="card-header" onclick="toggleCard('instructionsCard')">
+                <h4>
+                    <i class="fas fa-info-circle"></i> 
+                    ALL IMAGE FIELDS
+                </h4>
+                <i class="fas fa-chevron-up toggle-icon" id="instructionsIcon"></i>
+            </div>
+            <div class="card-content instructions-content" id="instructionsContent">
+                <div style="margin-bottom: 8px;">
+                    <i class="fas fa-camera"></i> <strong>Supported Photo Fields:</strong>
+                </div>
+                <div class="image-fields-list">
+                    <span class="field-tag">vue_ensemble</span>
+                    <span class="field-tag">arrimages_cables</span>
+                    <span class="field-tag">cassettes_soudees</span>
+                    <span class="field-tag">gestion_tubes_reserve</span>
+                    <span class="field-tag">vue_cassette_1</span>
+                    <span class="field-tag">vue_cassette_2</span>
+                    <span class="field-tag">vue_cassette_3</span>
+                    <span class="field-tag">vue_cassette_4</span>
+                    <span class="field-tag">vue_ensemble_OTB_ferme</span>
+                    <span class="field-tag">vue_interieure_OTB_ouvert</span>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.65rem; color: #aaa;">
+                    <i class="fas fa-mouse-pointer"></i> Click any marker to view all attributes + images from every photo field
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        // Layer groups and state
+        let buildingsLayer = null;
+        let buildingsCount = 0;
+        let allPointFeatures = [];
+        let lineLayers = [];
+        let locationGroups = [];
+        let markers = [];
+        let allPhotos = [];  // Store all photos from all features
+        let swiperInstance = null;
+        let loadedFiles = 0;
+        let totalFiles = 7 + 4 + 1;
+        let carouselVisible = true;
+        let updateTimeout = null;
+        
+        // Track which feature types are visible
+        let visibleFeatureTypes = {
+            DOE_cross: true,
+            DOE_otb: true,
+            DOE_otbb: true,
+            DOE_poles: true,
+            DOE_sc144: true,
+            DOE_sc48: true,
+            DOE_stc: true
+        };
+        
+        const pointFeatureTypes = [
+            { name: 'DOE_cross', color: '#4ecdc4', label: 'Cross', file: 'DOE_cross.geojson', icon: 'fa-code-branch' },
+            { name: 'DOE_otb', color: '#f19066', label: 'OTB', file: 'DOE_otb.geojson', icon: 'fa-tower-broadcast' },
+            { name: 'DOE_otbb', color: '#b83b5e', label: 'OTBB', file: 'DOE_otbb.geojson', icon: 'fa-broadcast-tower' },
+            { name: 'DOE_poles', color: '#3c6382', label: 'Poles', file: 'DOE_poles.geojson', icon: 'fa-plug' },
+            { name: 'DOE_sc144', color: '#e15f41', label: 'SC144', file: 'DOE_sc144.geojson', icon: 'fa-microchip' },
+            { name: 'DOE_sc48', color: '#546de5', label: 'SC48', file: 'DOE_sc48.geojson', icon: 'fa-microchip' },
+            { name: 'DOE_stc', color: '#f5cd79', label: 'STC', file: 'DOE_stc.geojson', icon: 'fa-power' }
+        ];
+        
+        const lineFeatureTypes = [
+            { name: 'DOE_fig8', color: '#ff03b7', label: 'Fig8', file: 'DOE_fig8.geojson' },
+            { name: 'DOE_ofc12', color: '#01cfe5', label: 'OFC12', file: 'DOE_ofc12.geojson' },
+            { name: 'DOE_ofc48', color: '#db1e2a', label: 'OFC48', file: 'DOE_ofc48.geojson' },
+            { name: 'DOE_ofc144', color: '#487bb6', label: 'OFC144', file: 'DOE_ofc144.geojson' }
+        ];
+        
+        const PHOTO_FIELDS = [
+            { key: 'vue_ensemble', label: 'Vue Ensemble' },
+            { key: 'arrimages_cables', label: 'Arrimages Câbles' },
+            { key: 'cassettes_soudees', label: 'Cassettes Soudées' },
+            { key: 'gestion_tubes_reserve', label: 'Gestion Tubes Réserve' },
+            { key: 'vue_cassette_1', label: 'Vue Cassette 1' },
+            { key: 'vue_cassette_2', label: 'Vue Cassette 2' },
+            { key: 'vue_cassette_3', label: 'Vue Cassette 3' },
+            { key: 'vue_cassette_4', label: 'Vue Cassette 4' },
+            { key: 'vue_ensemble_OTB_ferme', label: 'Vue Ensemble OTB (Fermé)' },
+            { key: 'vue_interieure_OTB_ouvert', label: 'Vue Intérieure OTB (Ouvert)' }
+        ];
+        
+        // ============ COLLAPSIBLE FUNCTIONS ============
+        function toggleControlsPanel() {
+            const content = document.getElementById('panelContent');
+            const icon = document.getElementById('panelToggleIcon');
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+        
+        function toggleCard(cardId) {
+            const card = document.getElementById(cardId);
+            const content = card.querySelector('.card-content');
+            const icon = card.querySelector('.toggle-icon');
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.classList.add('collapsed');
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+        
+        // ============ MAP INITIALIZATION ============
+        const map = L.map('map', { center: [0.3136, 32.5811], zoom: 14, zoomControl: false, maxZoom: 23 });
+        map.addControl(new L.Control.FullScreen());
+        
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map);
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri' });
+        
+        L.control.scale({ imperial: false, metric: true, position: 'bottomright' }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        
+        function extractImagesFromProperties(properties, featureName, typeLabel, lat, lng) {
+            const images = [];
+            PHOTO_FIELDS.forEach(field => {
+                let imagePath = properties[field.key];
+                if (imagePath && typeof imagePath === 'string' && imagePath.trim() !== '' && 
+                    imagePath !== 'NULL' && imagePath !== 'null' && imagePath !== 'None' &&
+                    !imagePath.startsWith('NULL')) {
+                    images.push({
+                        url: imagePath,
+                        label: field.label,
+                        fieldKey: field.key,
+                        featureName: featureName,
+                        type: typeLabel,
+                        lat: lat,
+                        lng: lng
+                    });
+                }
+            });
+            return images;
+        }
+        
+        function roundCoord(coord) { return Math.round(coord * 1000000) / 1000000; }
+        
+        function loadBuildingsGeoJSON() {
+            return new Promise((resolve) => {
+                $.ajax({
+                    url: 'buildings.geojson',
+                    dataType: 'json',
+                    timeout: 10000,
+                    success: function(data) {
+                        console.log(`✓ Loaded buildings.geojson - ${data.features?.length || 0} buildings`);
+                        if (data && data.features) {
+                            buildingsCount = data.features.length;
+                            buildingsLayer = L.layerGroup();
+                            data.features.forEach(feature => {
+                                if (feature.geometry && feature.geometry.type === 'Polygon') {
+                                    const latlngs = feature.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
+                                    let fillColor = '#ff9800', fillOpacity = 0.5;
+                                    if (feature.properties.is_invalid) { fillColor = '#ff4444'; fillOpacity = 0.7; }
+                                    else if (feature.properties.is_slum) { fillColor = '#ff6b35'; fillOpacity = 0.6; }
+                                    const polygon = L.polygon(latlngs, { color: '#ffd966', weight: 1, opacity: 0.8, fillColor: fillColor, fillOpacity: fillOpacity });
+                                    let popupContent = `<div style="min-width:200px;"><div style="background:#ff9800;color:#1a1a1a;padding:8px 12px;border-radius:8px 8px 0 0;font-weight:bold;"><i class="fas fa-building"></i> Building</div><div style="padding:12px;background:rgba(20,30,40,0.98);">`;
+                                    if (feature.properties.name) popupContent += `<div><span style="color:#ffd966;">🏢 Name:</span> <span style="color:#fff;">${feature.properties.name}</span></div>`;
+                                    if (feature.properties.nb_floors) popupContent += `<div><span style="color:#ffd966;">📏 Floors:</span> <span style="color:#fff;">${feature.properties.nb_floors}</span></div>`;
+                                    if (feature.properties.electrical_access) popupContent += `<div><span style="color:#ffd966;">⚡ Electrical Access:</span> <span style="color:#fff;">${feature.properties.electrical_access}</span></div>`;
+                                    popupContent += `</div></div>`;
+                                    polygon.bindPopup(popupContent);
+                                    buildingsLayer.addLayer(polygon);
+                                }
+                            });
+                            buildingsLayer.addTo(map);
+                            document.getElementById('statBuildings').innerHTML = buildingsCount;
+                        }
+                        resolve({ success: true, count: data.features?.length || 0 });
+                    },
+                    error: function(xhr, status, error) {
+                        console.warn(`✗ Failed to load buildings.geojson: ${error}`);
+                        buildingsLayer = L.layerGroup();
+                        document.getElementById('statBuildings').innerHTML = '0';
+                        resolve({ success: false, count: 0 });
+                    }
+                });
+            });
+        }
+        
+        function loadGeoJSON(fileName, typeName, isPointFeature, color, label) {
+            return new Promise((resolve) => {
+                $.ajax({
+                    url: fileName, dataType: 'json', timeout: 10000,
+                    success: function(data) {
+                        console.log(`✓ Loaded ${fileName} - ${data.features?.length || 0} features`);
+                        if (isPointFeature && data && data.features) {
+                            data.features.forEach((feature, idx) => {
+                                if (feature.geometry && feature.geometry.type === 'Point') {
+                                    const lng = feature.geometry.coordinates[0];
+                                    const lat = feature.geometry.coordinates[1];
+                                    const roundedLat = roundCoord(lat);
+                                    const roundedLng = roundCoord(lng);
+                                    const featureName = feature.properties.name || feature.properties.gref || `${typeName}_${idx}`;
+                                    const images = extractImagesFromProperties(feature.properties, featureName, label, lat, lng);
+                                    // Add to global photos array
+                                    images.forEach(img => allPhotos.push(img));
+                                    
+                                    allPointFeatures.push({
+                                        id: `${typeName}_${idx}`,
+                                        lat, lng, roundedLat, roundedLng,
+                                        type: typeName, typeLabel: label, typeColor: color,
+                                        name: featureName, images: images,
+                                        properties: feature.properties
+                                    });
+                                }
+                            });
+                        } else if (!isPointFeature && data && data.features) {
+                            const lineGroup = L.layerGroup();
+                            data.features.forEach(feature => {
+                                if (feature.geometry && feature.geometry.type === 'LineString') {
+                                    const latlngs = feature.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                                    L.polyline(latlngs, { color: color, weight: 4, opacity: 0.8 }).addTo(lineGroup);
+                                }
+                            });
+                            lineGroup.addTo(map);
+                            lineLayers.push({ name: typeName, group: lineGroup, color: color, label: label });
+                        }
+                        resolve({ success: true, count: data.features?.length || 0 });
+                    },
+                    error: (xhr, status, error) => { console.warn(`✗ Failed ${fileName}: ${error}`); resolve({ success: false, count: 0 }); }
+                });
+            });
+        }
+        
+        async function loadAllGeoJSON() {
+            const loadingStatus = document.getElementById('loadingStatus');
+            const progressBar = document.getElementById('loadingProgressBar');
+            const loadingDetail = document.getElementById('loadingDetail');
+            
+            for (let i = 0; i < pointFeatureTypes.length; i++) {
+                const type = pointFeatureTypes[i];
+                loadingStatus.innerHTML = `Loading points: ${type.label}...`;
+                await loadGeoJSON(type.file, type.name, true, type.color, type.label);
+                loadedFiles++; 
+                progressBar.style.width = (loadedFiles / totalFiles) * 100 + '%';
+                loadingDetail.innerHTML = `✅ ${loadedFiles}/${totalFiles} | ${type.label}`;
+            }
+            
+            for (let i = 0; i < lineFeatureTypes.length; i++) {
+                const type = lineFeatureTypes[i];
+                loadingStatus.innerHTML = `Loading lines: ${type.label}...`;
+                await loadGeoJSON(type.file, type.name, false, type.color, type.label);
+                loadedFiles++; 
+                progressBar.style.width = (loadedFiles / totalFiles) * 100 + '%';
+                loadingDetail.innerHTML = `✅ ${loadedFiles}/${totalFiles} | ${type.label} (lines)`;
+            }
+            
+            loadingStatus.innerHTML = `Loading buildings data...`;
+            await loadBuildingsGeoJSON();
+            loadedFiles++;
+            progressBar.style.width = (loadedFiles / totalFiles) * 100 + '%';
+            loadingDetail.innerHTML = `✅ ${loadedFiles}/${totalFiles} | Buildings`;
+            
+            loadingStatus.innerHTML = `Grouping features by exact coordinates...`;
+            refreshMarkers();
+            
+            document.getElementById('loadingStatus').innerHTML = '✅ Ready! Use checkboxes to show/hide feature types.';
+            setTimeout(() => document.getElementById('loadingOverlay').style.display = 'none', 800);
+            
+            buildBaseLayerControls();
+            buildPointFeatureControls();
+            buildLineLayerControls();
+            setupBuildingsToggle();
+            
+            // Setup map moveend event for carousel updates
+            map.on('moveend', function() {
+                if (updateTimeout) clearTimeout(updateTimeout);
+                updateTimeout = setTimeout(() => { if (carouselVisible) updateCarousel(); }, 250);
+            });
+        }
+        
+        // Core function: rebuild markers based on visible feature types
+        function refreshMarkers() {
+            // Remove all existing markers
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            
+            // Filter features to only those whose type is visible
+            const visibleFeatures = allPointFeatures.filter(f => visibleFeatureTypes[f.type] === true);
+            
+            // Group visible features by exact coordinates
+            const locationMap = new Map();
+            visibleFeatures.forEach(feature => {
+                const key = `${feature.roundedLat},${feature.roundedLng}`;
+                if (!locationMap.has(key)) {
+                    locationMap.set(key, { lat: feature.lat, lng: feature.lng, features: [], allImages: [], hasImages: false });
+                }
+                const group = locationMap.get(key);
+                group.features.push(feature);
+                group.allImages.push(...feature.images);
+                if (feature.images.length > 0) group.hasImages = true;
+            });
+            
+            locationGroups = [];
+            let groupId = 1;
+            for (const [key, group] of locationMap.entries()) {
+                const typeCounts = {};
+                group.features.forEach(f => typeCounts[f.type] = (typeCounts[f.type] || 0) + 1);
+                let dominantType = null, maxCount = 0;
+                for (const [type, count] of Object.entries(typeCounts)) {
+                    if (count > maxCount) { maxCount = count; dominantType = type; }
+                }
+                const typeInfo = pointFeatureTypes.find(t => t.name === dominantType);
+                const dominantColor = typeInfo ? typeInfo.color : '#ffd966';
+                
+                locationGroups.push({
+                    id: `LOC_${groupId++}`, lat: group.lat, lng: group.lng,
+                    features: group.features, allImages: group.allImages, hasImages: group.hasImages,
+                    totalFeatures: group.features.length, dominantColor,
+                    typeCounts: typeCounts
+                });
+            }
+            
+            // Create new markers
+            locationGroups.forEach(group => {
+                const hasPhotoClass = group.hasImages ? 'marker-has-photo' : '';
+                const markerHtml = `<div class="feature-marker ${hasPhotoClass}" style="background: ${group.dominantColor};">${group.totalFeatures}</div>`;
+                const icon = L.divIcon({ html: markerHtml, className: 'custom-div-icon', iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -16] });
+                const marker = L.marker([group.lat, group.lng], { icon: icon });
+                marker.on('click', () => showTabbedAttributes(group));
+                marker.addTo(map);
+                markers.push(marker);
+            });
+            
+            // Update stats and carousel
+            updateStatsPanel();
+            if (carouselVisible) updateCarousel();
+        }
+        
+        function toggleFeatureType(typeName, visible) {
+            visibleFeatureTypes[typeName] = visible;
+            refreshMarkers();
+        }
+        
+        function showTabbedAttributes(group) {
+            const features = group.features;
+            if (features.length === 0) return;
+            
+            let tabsHtml = '', contentHtml = '';
+            features.forEach((feature, idx) => {
+                const typeInfo = pointFeatureTypes.find(t => t.name === feature.type);
+                const typeColor = typeInfo ? typeInfo.color : '#aaa';
+                const typeLabel = typeInfo ? typeInfo.label : feature.type;
+                const tabId = `tab_${group.id}_${idx}`;
+                const isActive = idx === 0;
+                const hasImages = feature.images.length > 0;
+                
+                tabsHtml += `<div class="feature-tab ${isActive ? 'active' : ''}" onclick="switchFeatureTab('${tabId}', this)">
+                    <span style="background:${typeColor}; width:10px; height:10px; border-radius:2px; display:inline-block;"></span>
+                    ${typeLabel}${hasImages ? `<span class="badge-photo"><i class="fas fa-camera"></i> ${feature.images.length}</span>` : ''}
+                </div>`;
+                
+                contentHtml += `<div id="${tabId}" class="feature-content" style="display: ${isActive ? 'block' : 'none'};">`;
+                contentHtml += buildFeatureAttributesHTML(feature, idx);
+                contentHtml += `</div>`;
+            });
+            
+            const popupContent = `<div class="feature-tab-container"><div class="feature-tabs" id="tabs_${group.id}">${tabsHtml}</div><div id="contents_${group.id}">${contentHtml}</div></div>`;
+            L.popup({ className: 'custom-popup', minWidth: 480, maxWidth: 650 }).setLatLng([group.lat, group.lng]).setContent(popupContent).openOn(map);
+            if (typeof lightbox !== 'undefined') setTimeout(() => lightbox.option({ resizeDuration: 200, wrapAround: true }), 100);
+        }
+        
+        function buildFeatureAttributesHTML(feature, featureIndex) {
+            const typeInfo = pointFeatureTypes.find(t => t.name === feature.type);
+            const typeColor = typeInfo ? typeInfo.color : '#aaa';
+            const typeLabel = typeInfo ? typeInfo.label : feature.type;
+            
+            let html = `<div style="margin-bottom:15px;"><div style="background:${typeColor}; display:inline-block; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:bold; margin-bottom:12px;">
+                <i class="fas ${typeInfo?.icon || 'fa-map-pin'}"></i> ${typeLabel} #${featureIndex + 1}
+                ${feature.images.length > 0 ? `<span class="badge-photo"><i class="fas fa-camera"></i> ${feature.images.length}</span>` : ''}
+            </div>`;
+            
+            const importantFields = ['name', 'gref', 'location', 'pole_location', 'neighborhood', 'city', 'install_date', 'equipe', 'template', 'comment', 'status', 'description', 'pole_id', 'cable_type'];
+            for (const field of importantFields) {
+                if (feature.properties[field] && feature.properties[field] !== 'NULL' && feature.properties[field] !== 'null' && feature.properties[field] !== '') {
+                    html += `<div class="attr-row"><div class="attr-label">${field.replace(/_/g, ' ').toUpperCase()}</div><div class="attr-value">${escapeHtml(String(feature.properties[field]))}</div></div>`;
+                }
+            }
+            
+            if (feature.images && feature.images.length > 0) {
+                html += `<div class="attr-row"><div class="attr-label"><i class="fas fa-images"></i> ALL IMAGES (${feature.images.length})</div><div class="attr-value"><div class="image-gallery">`;
+                feature.images.forEach((img, imgIdx) => {
+                    const lightboxId = `feature-${feature.id}-${imgIdx}`;
+                    html += `<div class="image-container"><a href="${img.url}" data-lightbox="${lightboxId}" data-title="${img.label}"><img src="${img.url}" class="gallery-image" onerror="this.src='https://via.placeholder.com/110/2c3e50/ffd966?text=No+Image'"></a><div class="photo-label">${img.label}</div></div>`;
+                });
+                html += `</div></div></div>`;
+            } else {
+                html += `<div class="attr-row"><div class="attr-label"><i class="fas fa-camera-slash"></i> IMAGES</div><div class="attr-value" style="color:#aaa;">No images available for this feature</div></div>`;
+            }
+            html += `</div>`;
+            return html;
+        }
+        
+        window.switchFeatureTab = function(tabId, tabElement) {
+            const tabsContainer = tabElement.parentElement;
+            const parentId = tabsContainer.id;
+            const contentContainer = document.getElementById(`contents_${parentId.replace('tabs_', '')}`);
+            if (!contentContainer) return;
+            Array.from(tabsContainer.children).forEach(child => child.classList.remove('active'));
+            tabElement.classList.add('active');
+            Array.from(contentContainer.children).forEach(child => child.style.display = 'none');
+            const selectedContent = document.getElementById(tabId);
+            if (selectedContent) selectedContent.style.display = 'block';
+        };
+        
+        function updateStatsPanel() {
+            const visibleFeaturesCount = allPointFeatures.filter(f => visibleFeatureTypes[f.type]).length;
+            const visibleImagesCount = allPointFeatures.filter(f => visibleFeatureTypes[f.type]).flatMap(f => f.images).length;
+            const multiFeatureLocs = locationGroups.filter(g => g.totalFeatures >= 2).length;
+            const groupsWithImages = locationGroups.filter(g => g.hasImages).length;
+            
+            document.getElementById('statLocations').innerHTML = locationGroups.length;
+            document.getElementById('statFeatures').innerHTML = visibleFeaturesCount;
+            document.getElementById('statImages').innerHTML = visibleImagesCount;
+            document.getElementById('statMulti').innerHTML = multiFeatureLocs;
+            document.getElementById('statWithPhotos').innerHTML = groupsWithImages;
+        }
+        
+        function updateCarousel() {
+            if (!locationGroups.length) {
+                const swiperWrapper = document.getElementById('swiperWrapper');
+                swiperWrapper.innerHTML = `<div class="swiper-slide"><div class="empty-carousel"><i class="fas fa-map-marked-alt"></i><p>No visible features</p><small>Enable feature types using checkboxes</small></div></div>`;
+                return;
+            }
+            
+            const bounds = map.getBounds();
+            // Get visible groups that are within map bounds
+            const visibleGroups = locationGroups.filter(g => bounds.contains([g.lat, g.lng]));
+            // Collect all images from visible groups
+            const visibleImages = [];
+            visibleGroups.forEach(group => {
+                group.allImages.forEach(img => {
+                    visibleImages.push(img);
+                });
+            });
+            
+            const titleSpan = document.getElementById('carouselTitle');
+            const subtitleSpan = document.getElementById('carouselSubtitle');
+            const swiperWrapper = document.getElementById('swiperWrapper');
+            
+            if (visibleImages.length === 0) {
+                titleSpan.innerHTML = `<i class="fas fa-camera-slash"></i> NO IMAGES IN VIEW`;
+                subtitleSpan.innerHTML = `Pan to markers with green rings`;
+                swiperWrapper.innerHTML = `<div class="swiper-slide"><div class="empty-carousel"><i class="fas fa-map-marked-alt"></i><p>No images in visible area</p><small>Move map to explore locations with 🟢 markers</small></div></div>`;
+            } else {
+                titleSpan.innerHTML = `<i class="fas fa-images"></i> IMAGES IN VIEW (${visibleImages.length})`;
+                subtitleSpan.innerHTML = `${visibleGroups.length} locations · ${visibleImages.length} photos`;
+                let html = '';
+                visibleImages.forEach((img) => {
+                    html += `<div class="swiper-slide" onclick="window.open('${img.url}', '_blank')">
+                        <img src="${img.url}" onerror="this.src='https://via.placeholder.com/280x120/2c3e50/ffd966?text=No+Image'">
+                        <div class="slide-caption"><div class="photo-title">📷 ${img.label}</div><div>📍 ${img.featureName || 'Feature'} (${img.type || ''})</div></div>
+                    </div>`;
+                });
+                swiperWrapper.innerHTML = html;
+            }
+            
+            // Reinitialize swiper
+            setTimeout(() => { 
+                if (swiperInstance) swiperInstance.destroy(true, true); 
+                swiperInstance = new Swiper('.swiper', { 
+                    slidesPerView: 'auto', 
+                    spaceBetween: 15, 
+                    navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' }, 
+                    pagination: { el: '.swiper-pagination', clickable: true }, 
+                    grabCursor: true 
+                }); 
+            }, 100);
+        }
+        
+        function buildBaseLayerControls() {
+            const container = document.getElementById('base-layer-controls');
+            container.innerHTML = `<div class="layer-item"><input type="radio" name="baselayer" checked onchange="switchBaseLayer('osm')" style="margin-right:10px;"><span class="layer-color" style="background:#7cb342"></span><span style="margin-left:10px;">OSM Map</span></div>
+                <div class="layer-item"><input type="radio" name="baselayer" onchange="switchBaseLayer('satellite')" style="margin-right:10px;"><span class="layer-color" style="background:#3c6382"></span><span style="margin-left:10px;">Satellite</span></div>`;
+        }
+        
+        function buildPointFeatureControls() {
+            const container = document.getElementById('point-feature-controls');
+            container.innerHTML = '';
+            const typeCounts = {};
+            allPointFeatures.forEach(f => typeCounts[f.type] = (typeCounts[f.type] || 0) + 1);
+            
+            pointFeatureTypes.forEach(type => {
+                if (typeCounts[type.name]) {
+                    container.innerHTML += `<div class="layer-item">
+                        <input type="checkbox" id="toggle_${type.name}" checked onchange="toggleFeatureType('${type.name}', this.checked)" style="margin-right:10px;">
+                        <span class="layer-color" style="background:${type.color}"></span>
+                        <span class="layer-name">${type.label}</span>
+                        <span class="layer-count">(${typeCounts[type.name]})</span>
+                    </div>`;
+                }
+            });
+        }
+        
+        function buildLineLayerControls() {
+            const cont = document.getElementById('line-layer-controls');
+            cont.innerHTML = '';
+            lineFeatureTypes.forEach(type => {
+                cont.innerHTML += `<div class="layer-item">
+                    <input type="checkbox" id="line_${type.name}" checked onchange="toggleLineLayer('${type.name}', this.checked)" style="margin-right:10px;">
+                    <span class="layer-color" style="background:${type.color}"></span>
+                    <span class="layer-name" style="margin-left:10px;">${type.label}</span>
+                </div>`;
+            });
+        }
+        
+        function setupBuildingsToggle() {
+            const toggleCheckbox = document.getElementById('toggleBuildings');
+            if (toggleCheckbox) {
+                toggleCheckbox.addEventListener('change', function(e) {
+                    if (buildingsLayer) e.target.checked ? buildingsLayer.addTo(map) : map.removeLayer(buildingsLayer);
+                });
+            }
+        }
+        
+        window.toggleFeatureType = toggleFeatureType;
+        window.resetView = function() { map.setView([0.3136, 32.5811], 14); setTimeout(() => updateCarousel(), 300); };
+        window.toggleLineLayer = function(layerName, visible) { const layer = lineLayers.find(l=>l.name===layerName); if(layer) visible ? layer.group.addTo(map) : map.removeLayer(layer.group); };
+        window.switchBaseLayer = function(layer) { if(layer==='osm'){ map.removeLayer(satellite); map.addLayer(osm); } else { map.removeLayer(osm); map.addLayer(satellite); } };
+        window.toggleCarousel = function() { const boundary = document.getElementById('carouselBoundary'); carouselVisible = !carouselVisible; if(carouselVisible) { boundary.classList.remove('hidden'); updateCarousel(); } else boundary.classList.add('hidden'); };
+        function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>]/g, m=> m==='&'?'&amp;': m==='<'?'&lt;':'&gt;'); }
+        
+        loadAllGeoJSON();
+    </script>
+</body>
+</html>

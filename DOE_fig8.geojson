@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "DOE_fig8",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 167, "city": "Kampala", "name": "LUK_8_MDU_12FO/003", "template": "12F S.M. FLAT DROP TYPE", "gis_length": 88.344226765102562, "real_length": null, "role": "distribution", "install_date": null, "acceptance_status": null, "acceptance_date": null, "comment": null, "equipe": null, "photo_fig8_splice": null, "photo_tap_closure": null, "photo_bldg_entry": null }, "geometry": { "type": "LineString", "coordinates": [ [ 32.58683803912718, 0.27111369659682 ], [ 32.587195422562189, 0.271530686612528 ], [ 32.58697716804528, 0.271646133351874 ] ] } },
+{ "type": "Feature", "properties": { "fid": 168, "city": "Kampala", "name": "LUK_8_MDU_12FO/002", "template": "12F S.M. FLAT DROP TYPE", "gis_length": 42.320532419390361, "real_length": null, "role": "distribution", "install_date": null, "acceptance_status": null, "acceptance_date": null, "comment": null, "equipe": null, "photo_fig8_splice": null, "photo_tap_closure": null, "photo_bldg_entry": null }, "geometry": { "type": "LineString", "coordinates": [ [ 32.590231012640828, 0.271540373167085 ], [ 32.590180504723293, 0.271246279221799 ], [ 32.590260128365166, 0.271272298965279 ] ] } },
+{ "type": "Feature", "properties": { "fid": 169, "city": "Kampala", "name": "LUK_8_MDU_12FO/001", "template": "12F S.M. FLAT DROP TYPE", "gis_length": 25.741390907709135, "real_length": null, "role": "distribution", "install_date": null, "acceptance_status": null, "acceptance_date": null, "comment": null, "equipe": null, "photo_fig8_splice": null, "photo_tap_closure": null, "photo_bldg_entry": null }, "geometry": { "type": "LineString", "coordinates": [ [ 32.592182765324353, 0.271451432984344 ], [ 32.592188989324619, 0.271218720094592 ] ] } }
+]
+}
